@@ -1,0 +1,2152 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Phonics H Brothers - Pancake Catch</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <style>
+    :root {
+      --bg: #fff7e8;
+      --mint: #b8eee4;
+      --mint-dark: #54b9aa;
+      --pink: #ffd6e5;
+      --pink-dark: #f28aae;
+      --yellow: #fff1a8;
+      --cream: #fffdf7;
+      --brown: #8b5e3c;
+      --red: #ff6b6b;
+      --blue: #b9d7ff;
+      --purple: #d9c7ff;
+      --shadow: rgba(80, 62, 45, 0.18);
+      --text: #4c3b32;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      width: 100vw;
+      min-height: 100vh;
+      overflow: hidden;
+      color: var(--text);
+      font-family: "Comic Sans MS", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255, 214, 229, 0.9), transparent 24%),
+        radial-gradient(circle at 92% 8%, rgba(185, 215, 255, 0.9), transparent 23%),
+        radial-gradient(circle at 78% 88%, rgba(184, 238, 228, 0.85), transparent 24%),
+        var(--bg);
+    }
+
+    button, input, select {
+      font-family: inherit;
+    }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 10;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    #lobbyScreen {
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .lobby-card {
+      width: min(1060px, 96vw);
+      max-height: 96vh;
+      overflow: hidden;
+      background: rgba(255, 253, 247, 0.92);
+      border: 4px solid #fff;
+      border-radius: 34px;
+      box-shadow: 0 20px 60px var(--shadow);
+      padding: clamp(14px, 2.1vw, 24px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 4rem);
+      letter-spacing: 1px;
+      color: var(--brown);
+      text-shadow: 3px 3px 0 #fff1a8;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      font-size: clamp(.92rem, 1.65vw, 1.18rem);
+      color: #7d6657;
+    }
+
+    .mascot {
+      width: clamp(105px, 16vw, 180px);
+      aspect-ratio: 1;
+      border-radius: 44% 56% 52% 48%;
+      background: linear-gradient(160deg, #fff8d2, #ffd9a6);
+      border: 5px solid #fff;
+      box-shadow: 0 12px 25px var(--shadow);
+      position: relative;
+      display: grid;
+      place-items: center;
+      font-size: clamp(3.8rem, 8vw, 6.7rem);
+      animation: floaty 3s ease-in-out infinite;
+    }
+
+    .mascot::after {
+      content: "H";
+      position: absolute;
+      right: 8%;
+      bottom: 4%;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--pink);
+      border: 3px solid #fff;
+      color: var(--brown);
+      font-weight: 900;
+      font-size: 1.15rem;
+    }
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-10px) rotate(3deg); }
+    }
+
+    .lobby-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .panel {
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 3px solid rgba(255,255,255,0.96);
+      padding: 14px;
+      box-shadow: 0 10px 24px rgba(118, 95, 72, 0.12);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+      color: var(--brown);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(110px, 1fr));
+      gap: 12px;
+    }
+
+    .cat-tile {
+      cursor: pointer;
+      border: 3px solid transparent;
+      border-radius: 22px;
+      padding: 12px 8px;
+      background: #fff;
+      box-shadow: inset 0 -6px 0 rgba(0,0,0,0.04), 0 6px 12px rgba(0,0,0,0.07);
+      transition: transform .15s, border-color .15s, background .15s;
+      min-height: 78px;
+    }
+
+    .cat-tile:hover { transform: translateY(-2px); }
+    .cat-tile.selected {
+      border-color: var(--mint-dark);
+      background: linear-gradient(180deg, #effffb, #d9fff8);
+    }
+
+    .cat-name {
+      display: block;
+      font-weight: 900;
+      font-size: 1.65rem;
+      color: var(--brown);
+      line-height: 1;
+    }
+
+    .cat-note {
+      display: block;
+      font-size: 0.82rem;
+      margin-top: 6px;
+      color: #795f50;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .pill, .start-btn, .mini-btn, .key-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 900;
+      color: var(--brown);
+      background: #fff;
+      box-shadow: 0 7px 0 rgba(118, 95, 72, 0.12), 0 8px 18px rgba(118,95,72,0.08);
+      cursor: pointer;
+      transition: transform .1s, box-shadow .1s, background .15s;
+    }
+
+    .pill:active, .start-btn:active, .mini-btn:active, .key-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 3px 0 rgba(118, 95, 72, 0.12), 0 5px 12px rgba(118,95,72,0.08);
+    }
+
+    .pill.active {
+      background: var(--yellow);
+      outline: 3px solid #fff;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 145px 1fr;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0;
+      font-weight: 800;
+    }
+
+    .setting-row select, .setting-row input[type="range"] {
+      width: 100%;
+    }
+
+    select {
+      border: 3px solid #fff;
+      border-radius: 18px;
+      padding: 12px;
+      background: #fff;
+      color: var(--brown);
+      font-weight: 900;
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.04);
+    }
+
+    input[type="range"] { accent-color: var(--mint-dark); }
+
+    .start-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 18px 22px;
+      font-size: 1.35rem;
+      background: linear-gradient(180deg, #fff4a7, #ffd58d);
+    }
+
+    .teacher-note {
+      margin: 12px 0 0;
+      padding: 12px 14px;
+      border-radius: 20px;
+      background: rgba(255, 241, 168, 0.55);
+      font-weight: 900;
+      line-height: 1.45;
+      color: #735847;
+    }
+
+    #gameScreen {
+      flex-direction: column;
+      background: linear-gradient(180deg, #dff9f4, #fff7e8 58%, #ffe6d0);
+    }
+
+    #topHud {
+      z-index: 4;
+      min-height: 62px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      pointer-events: none;
+    }
+
+    .player-hud {
+      min-height: 52px;
+      border-radius: 20px;
+      padding: 6px 10px;
+      border: 3px solid #fff;
+      background: rgba(255,255,255,0.75);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.10);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .player-hud.hidden { visibility: hidden; }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--pink);
+      font-size: 1.55rem;
+      border: 3px solid #fff;
+    }
+
+    .hud-name {
+      font-weight: 1000;
+      color: var(--brown);
+      font-size: .96rem;
+    }
+
+    .hud-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-weight: 900;
+      color: #695245;
+    }
+
+    .hearts {
+      letter-spacing: 1px;
+      font-size: 1rem;
+    }
+
+    .player-status {
+      font-size: .88rem;
+      color: #7d6657;
+      font-weight: 900;
+    }
+
+    body.dual-game #topHud {
+      padding-left: 6px;
+      padding-right: 6px;
+      gap: 6px;
+    }
+
+    body.dual-game .touch-controls {
+      padding-left: 6px;
+      padding-right: 6px;
+      gap: 6px;
+    }
+
+    body.dual-game .move-btn {
+      height: clamp(50px, 8vh, 74px);
+      border-radius: 20px;
+    }
+
+    .center-hud {
+      display: grid;
+      place-items: center;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    #timerBadge {
+      min-width: 82px;
+      border-radius: 999px;
+      padding: 7px 13px;
+      background: #fff;
+      border: 4px solid var(--yellow);
+      color: var(--brown);
+      font-weight: 1000;
+      text-align: center;
+      box-shadow: 0 9px 20px rgba(0,0,0,0.1);
+      font-size: 1.35rem;
+    }
+
+    #repeatBtn {
+      border-radius: 16px;
+      padding: 8px 12px;
+      background: var(--purple);
+      font-size: .92rem;
+    }
+
+    #gameRoot {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    .touch-controls {
+      position: absolute;
+      z-index: 5;
+      left: 0;
+      right: 0;
+      bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 10px;
+      pointer-events: none;
+    }
+
+    .control-set {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .control-set.single {
+      grid-column: 1 / span 2;
+      width: min(620px, 92vw);
+      justify-self: center;
+    }
+
+    .move-btn {
+      height: clamp(54px, 9vh, 82px);
+      border: 4px solid #fff;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.72);
+      color: var(--brown);
+      font-size: clamp(2rem, 6vw, 3.6rem);
+      font-weight: 1000;
+      box-shadow: 0 12px 22px rgba(0,0,0,0.12), inset 0 -9px 0 rgba(0,0,0,0.04);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .move-icon {
+      display: block;
+      line-height: 1;
+      transform: translateY(-0.04em);
+      pointer-events: none;
+    }
+
+    .move-btn:active, .move-btn.held {
+      background: var(--yellow);
+      transform: translateY(3px) scale(0.99);
+    }
+
+    #endScreen {
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      background: rgba(255, 247, 232, 0.92);
+      backdrop-filter: blur(5px);
+      overflow: hidden;
+    }
+
+    .end-card {
+      width: min(1060px, 98vw);
+      max-height: 96vh;
+      overflow: hidden;
+      border-radius: 34px;
+      border: 4px solid #fff;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 22px 64px var(--shadow);
+      padding: 18px;
+    }
+
+    .end-title {
+      margin: 0 0 8px;
+      color: var(--brown);
+      font-size: clamp(1.85rem, 3.7vw, 3rem);
+      text-align: center;
+    }
+
+    .name-help {
+      margin: 0 auto 8px;
+      text-align: center;
+      font-weight: 900;
+      color: #7d6657;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(220px, 1fr));
+      gap: 12px;
+      margin: 10px 0;
+    }
+
+    .result-card, .leaderboard-card {
+      border-radius: 26px;
+      background: #fff8dc;
+      border: 3px solid #fff;
+      padding: 12px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+    }
+
+    .result-card {
+      min-height: 164px;
+    }
+
+    .result-card h3, .leaderboard-card h3 { margin: 0 0 8px; color: var(--brown); }
+
+    .name-display {
+      height: 48px;
+      border-radius: 18px;
+      background: #fff;
+      border: 3px dashed var(--mint-dark);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-weight: 1000;
+      font-size: 1.2rem;
+      color: var(--brown);
+      margin-bottom: 10px;
+    }
+
+    .name-display.active-input {
+      outline: 4px solid var(--yellow);
+    }
+
+    .keyboard-center {
+      width: min(900px, 94vw);
+      margin: 10px auto 0;
+      padding: 12px;
+      border-radius: 26px;
+      background: rgba(255,255,255,0.62);
+      border: 3px solid #fff;
+    }
+
+    .keyboard {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 7px;
+      margin-top: 0;
+    }
+
+    .key-btn {
+      padding: 10px 7px;
+      min-height: 44px;
+      border-radius: 18px;
+      background: #fff;
+      font-size: 1rem;
+      font-family: "Comic Sans MS", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+    }
+
+    .key-btn.wide { grid-column: span 2; background: var(--blue); }
+    .key-btn.submit { grid-column: span 3; background: var(--mint); }
+    .key-btn.delete { background: var(--pink); }
+
+    .leaderboard-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      padding: 16px;
+      background: rgba(76, 59, 50, 0.26);
+      backdrop-filter: blur(5px);
+    }
+
+    .leaderboard-modal.show { display: flex; }
+
+    .leaderboard-window {
+      width: min(660px, 94vw);
+      max-height: 88vh;
+      border-radius: 32px;
+      border: 4px solid #fff;
+      background: rgba(255,255,255,0.98);
+      box-shadow: 0 24px 70px rgba(80, 62, 45, 0.24);
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .leaderboard-window h3 {
+      margin: 0;
+      text-align: center;
+      color: var(--brown);
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+    }
+
+    .leaderboard-wrap {
+      max-height: min(52vh, 430px);
+      overflow-y: auto;
+      background: rgba(255,248,220,0.72);
+      border-radius: 20px;
+      padding: 8px;
+      border: 3px solid #fff;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 10px;
+      margin: 5px 0;
+      background: #fff;
+      border-radius: 16px;
+      font-weight: 900;
+    }
+
+    .rank-row .score { color: var(--pink-dark); }
+
+    .end-actions {
+      display: none;
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      gap: 14px;
+      margin-top: 0;
+    }
+
+    .end-actions.show { display: grid; }
+
+    .toast {
+      position: fixed;
+      top: 105px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      background: #fff;
+      color: var(--brown);
+      border: 4px solid var(--yellow);
+      border-radius: 999px;
+      padding: 12px 20px;
+      font-weight: 1000;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+      display: none;
+    }
+
+    .toast.show {
+      display: block;
+      animation: popIn .25s ease-out;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-15px) scale(.88); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+
+    .shake-red {
+      animation: borderWiggle .48s ease-in-out;
+    }
+
+    @keyframes borderWiggle {
+      0%,100% { box-shadow: inset 0 0 0 0 rgba(255, 107, 107, 0); transform: translateX(0); }
+      18% { box-shadow: inset 0 0 0 8px rgba(255, 107, 107, .7); transform: translateX(-6px); }
+      38% { transform: translateX(6px); }
+      58% { transform: translateX(-4px); }
+      76% { transform: translateX(4px); }
+    }
+
+
+    .drop-option-box {
+      margin-top: 12px;
+      border-radius: 22px;
+      padding: 10px;
+      background: rgba(255, 241, 168, 0.42);
+      border: 3px dashed rgba(139, 94, 60, 0.18);
+    }
+
+    .drop-option-title {
+      font-weight: 900;
+      color: var(--brown);
+      margin-bottom: 6px;
+    }
+
+    .drop-mode-row {
+      margin-top: 0;
+      gap: 8px;
+    }
+
+    .drop-mode-row .pill {
+      padding: 10px 13px;
+      font-size: 0.92rem;
+    }
+
+    .teacher-note.compact {
+      margin-top: 7px;
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 880px) {
+      .hero { grid-template-columns: 1fr auto; }
+      .lobby-grid, .results-grid { grid-template-columns: 1fr; }
+      .mascot { width: 92px; }
+      .category-grid { grid-template-columns: repeat(3, 1fr); }
+      .cat-note { display: none; }
+      #topHud { grid-template-columns: 1fr auto; min-height: 64px; }
+      #hudP2 { display: none; }
+      .center-hud { grid-column: 2; grid-row: 1; }
+      .touch-controls { grid-template-columns: 1fr; }
+      .control-set.p2 { display: none; }
+      .keyboard { grid-template-columns: repeat(7, 1fr); }
+      .key-btn.submit { grid-column: span 2; }
+      .end-card, .lobby-card { overflow: hidden; }
+    }
+  </style>
+</head>
+<body>
+  <div id="lobbyScreen" class="screen active">
+    <div class="lobby-card">
+      <div class="hero">
+        <div>
+          <h1 class="title">Phonics H Brothers</h1>
+          <p class="subtitle">Listen, balance the tray, and catch the correct pancake!</p>
+        </div>
+        <div class="mascot" aria-hidden="true">🥞</div>
+      </div>
+
+      <div class="lobby-grid">
+        <section class="panel">
+          <h2>1. Choose Sounds</h2>
+          <div id="categoryGrid" class="category-grid"></div>
+          <div class="pill-row">
+            <button id="selectAllBtn" class="pill">All</button>
+            <button id="clearAllBtn" class="pill">Clear</button>
+          </div>
+          <div class="drop-option-box">
+            <div class="drop-option-title">Drop Options</div>
+            <div class="pill-row drop-mode-row">
+              <button class="pill drop-mode active" data-drop-mode="selected">Checked Only</button>
+              <button class="pill drop-mode" data-drop-mode="all">All Sounds</button>
+            </div>
+            <div class="teacher-note compact">Voice: checked sounds only.</div>
+          </div>
+          <div class="teacher-note">Listen. Catch the right sound.</div>
+        </section>
+
+        <section class="panel">
+          <h2>2. Game Settings</h2>
+          <div class="setting-row">
+            <label>Mode</label>
+            <div class="pill-row" style="margin:0;">
+              <button class="pill mode active" data-mode="auto">Auto</button>
+              <button class="pill mode" data-mode="single">1 Player</button>
+              <button class="pill mode" data-mode="dual">2 Players</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label for="durationSelect">Time</label>
+            <select id="durationSelect">
+              <option value="30">30s</option>
+              <option value="45">45s</option>
+              <option value="60" selected>60s</option>
+              <option value="90">90s</option>
+              <option value="120">120s</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="difficultySelect">Drop Speed</label>
+            <select id="difficultySelect">
+              <option value="level1">Level 1 - Very Slow</option>
+              <option value="level2" selected>Level 2 - Slow</option>
+              <option value="level3">Level 3 - Medium</option>
+              <option value="level4">Level 4 - Fast</option>
+              <option value="level5">Level 5 - Challenge</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="speechRateSelect">Voice Speed</label>
+            <select id="speechRateSelect">
+              <option value="0.6">0.6</option>
+              <option value="0.7">0.7</option>
+              <option value="0.8" selected>0.8</option>
+              <option value="0.9">0.9</option>
+              <option value="1.0">1.0</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="volumeRange">Voice Volume <span id="volumeValue">80%</span></label>
+            <input id="volumeRange" type="range" min="0" max="100" value="80" />
+          </div>
+          <div class="setting-row">
+            <label>Sound FX</label>
+            <button id="sfxToggleBtn" class="pill active" type="button">On</button>
+          </div>
+          <button id="startGameBtn" class="start-btn">Start Game 🥞</button>
+          <p class="subtitle" style="font-size:0.92rem;">How to play: Listen. Catch the correct sound. Keep the stack balanced.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameScreen" class="screen">
+    <div id="gameRoot"></div>
+    <div id="topHud">
+      <div id="hudP1" class="player-hud">
+        <div class="avatar">🐰</div>
+        <div>
+          <div class="hud-name">Player 1</div>
+          <div class="hud-line"><span>Score: <b id="scoreP1">0</b></span><span id="heartsP1" class="hearts">❤❤❤❤❤</span></div>
+          <div id="statusP1" class="player-status">Ready</div>
+            </div>
+      </div>
+      <div class="center-hud">
+        <div id="timerBadge">60s</div>
+        <button id="repeatBtn" class="mini-btn">🔊 Repeat</button>
+      </div>
+      <div id="hudP2" class="player-hud">
+        <div class="avatar">🐻</div>
+        <div>
+          <div class="hud-name">Player 2</div>
+          <div class="hud-line"><span>Score: <b id="scoreP2">0</b></span><span id="heartsP2" class="hearts">❤❤❤❤❤</span></div>
+          <div id="statusP2" class="player-status">Ready</div>
+        </div>
+      </div>
+    </div>
+    <div class="touch-controls" id="touchControls">
+      <div id="controlP1" class="control-set p1">
+        <button class="move-btn" data-player="0" data-dir="-1"><span class="move-icon">◀</span></button>
+        <button class="move-btn" data-player="0" data-dir="1"><span class="move-icon">▶</span></button>
+      </div>
+      <div id="controlP2" class="control-set p2">
+        <button class="move-btn" data-player="1" data-dir="-1"><span class="move-icon">◀</span></button>
+        <button class="move-btn" data-player="1" data-dir="1"><span class="move-icon">▶</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="endScreen" class="screen">
+    <div class="end-card">
+      <h2 class="end-title">Game Over! 🥞</h2>
+      <p class="name-help">Type names. Blank names will become Player 1 / Player 2.</p>
+      <div id="resultsGrid" class="results-grid"></div>
+    </div>
+    <div id="leaderboardModal" class="leaderboard-modal" aria-hidden="true">
+      <div class="leaderboard-window">
+        <h3>Leaderboard</h3>
+        <div id="leaderboardList" class="leaderboard-wrap"></div>
+        <div id="endActions" class="end-actions show">
+          <button id="playAgainBtn" class="start-btn">Play Again</button>
+          <button id="backLobbyBtn" class="start-btn" style="background:linear-gradient(180deg,#dffff8,#b7f4e8);">Lobby</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const phonicsDictionary = {
+      "wh": ["whale", "wheel", "white", "what", "when", "where", "whip", "whisper", "which", "why", "while", "whisk", "whistle"],
+      "ph": ["phone", "photo", "dolphin", "phonics", "phantom", "phase", "graph", "sphere", "elephant", "alphabet", "trophy"],
+      "th(X)": ["three", "bathroom", "teeth", "thin", "thick", "thank", "thumb", "think", "math", "path", "bath", "moth", "throw"],
+      "th(O)": ["this", "that", "those", "they", "there", "these", "then", "them", "mother", "father", "brother", "weather"],
+      "ch": ["chicken", "church", "lunch", "chair", "cheese", "cherry", "chat", "chin", "chop", "chick", "much", "rich", "peach"],
+      "sh": ["shop", "short", "fish", "ship", "shoe", "shirt", "sheep", "shell", "shark", "wash", "brush", "trash", "dish"]
+    };
+
+    const categoryNotes = {
+      "wh": "wh words",
+      "ph": "ph = /f/",
+      "th(X)": "unvoiced th /θ/",
+      "th(O)": "voiced th /ð/",
+      "ch": "ch words",
+      "sh": "sh words"
+    };
+
+    const allCategories = Object.keys(phonicsDictionary);
+    let selectedCategories = new Set(allCategories);
+    let lobbySettings = {
+      mode: "auto",
+      duration: 60,
+      difficulty: "level2",
+      speechRate: 0.8,
+      volume: 0.8,
+      sfxEnabled: true,
+      dropMode: "selected"
+    };
+    let currentGameSettings = null;
+    let phaserGame = null;
+    let activeScene = null;
+    let activeNameTarget = 0;
+    let endPlayers = [];
+    let nameBuffers = ["", ""];
+    let nameSubmitted = [false, false];
+    let isCaps = false;
+
+    const $ = (id) => document.getElementById(id);
+
+
+    const sfx = {
+      ctx: null,
+      master: null,
+      enabled: true,
+      volume: 0.55,
+      unlocked: false,
+      ensure() {
+        if (!this.enabled) return null;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return null;
+        if (!this.ctx) {
+          this.ctx = new AudioContext();
+          this.master = this.ctx.createGain();
+          this.master.gain.value = this.volume;
+          this.master.connect(this.ctx.destination);
+        }
+        if (this.ctx.state === "suspended") this.ctx.resume();
+        this.unlocked = true;
+        return this.ctx;
+      },
+      setEnabled(value) {
+        this.enabled = !!value;
+        if (!this.enabled && this.master) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.01);
+        if (this.enabled && this.master) this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.01);
+      },
+      setVolume(value) {
+        this.volume = Math.max(0, Math.min(1, Number(value) || 0)) * 0.50 + 0.08;
+        if (this.master && this.enabled) this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.03);
+      },
+      tone(freq, start, dur, type = "sine", gain = 0.14, detune = 0) {
+        const ctx = this.ensure();
+        if (!ctx || !this.master) return;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
+        osc.detune.setValueAtTime(detune, start);
+        g.gain.setValueAtTime(0.0001, start);
+        g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), start + 0.018);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        osc.connect(g).connect(this.master);
+        osc.start(start);
+        osc.stop(start + dur + 0.025);
+      },
+      noise(start, dur, gain = 0.06) {
+        const ctx = this.ensure();
+        if (!ctx || !this.master) return;
+        const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(900, start);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(gain, start);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        src.connect(filter).connect(g).connect(this.master);
+        src.start(start);
+        src.stop(start + dur + 0.02);
+      },
+      play(name) {
+        if (!this.enabled) return;
+        const ctx = this.ensure();
+        if (!ctx) return;
+        const t = ctx.currentTime + 0.005;
+        if (name === "click") {
+          this.tone(660, t, 0.055, "triangle", 0.045);
+        } else if (name === "start") {
+          [523, 659, 784].forEach((f, i) => this.tone(f, t + i * 0.075, 0.12, "triangle", 0.095));
+        } else if (name === "correct") {
+          [587, 740, 880, 1175].forEach((f, i) => this.tone(f, t + i * 0.055, 0.14, "sine", 0.10));
+        } else if (name === "bonus") {
+          [1047, 1319, 1568].forEach((f, i) => this.tone(f, t + i * 0.045, 0.10, "sine", 0.08));
+          this.tone(2093, t + 0.16, 0.12, "triangle", 0.055);
+        } else if (name === "wrong") {
+          this.tone(260, t, 0.13, "triangle", 0.08);
+          this.tone(220, t + 0.09, 0.16, "triangle", 0.065);
+        } else if (name === "edge") {
+          this.tone(440, t, 0.07, "sine", 0.045);
+          this.tone(554, t + 0.045, 0.07, "sine", 0.04);
+        } else if (name === "waiting") {
+          this.tone(784, t, 0.13, "sine", 0.07);
+          this.tone(988, t + 0.09, 0.16, "sine", 0.065);
+        } else if (name === "wobble") {
+          this.tone(196, t, 0.16, "sine", 0.045, -18);
+          this.tone(207, t + 0.06, 0.16, "sine", 0.04, 16);
+        } else if (name === "collapse") {
+          this.noise(t, 0.34, 0.08);
+          [392, 330, 262, 196].forEach((f, i) => this.tone(f, t + i * 0.07, 0.16, "triangle", 0.085));
+        } else if (name === "finish") {
+          [659, 523, 392].forEach((f, i) => this.tone(f, t + i * 0.08, 0.16, "sine", 0.07));
+        }
+      }
+    };
+
+    function playSfx(name) {
+      try { sfx.play(name); } catch (e) { /* keep the game running even if audio is blocked */ }
+    }
+
+    window.addEventListener("pointerdown", () => sfx.ensure(), { once: true, passive: true });
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
+      $(id).classList.add("active");
+    }
+
+    function toast(message, ms = 1300) {
+      const t = $("toast");
+      t.textContent = message;
+      t.classList.add("show");
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => t.classList.remove("show"), ms);
+    }
+
+    function renderCategories() {
+      const grid = $("categoryGrid");
+      grid.innerHTML = "";
+      allCategories.forEach(cat => {
+        const tile = document.createElement("button");
+        tile.className = "cat-tile" + (selectedCategories.has(cat) ? " selected" : "");
+        tile.innerHTML = `<span class="cat-name">${cat}</span>`;
+        tile.setAttribute("aria-label", `${cat} ${categoryNotes[cat]}`);
+        tile.addEventListener("click", () => {
+          if (selectedCategories.has(cat)) selectedCategories.delete(cat);
+          else selectedCategories.add(cat);
+          renderCategories();
+          });
+        grid.appendChild(tile);
+      });
+    }
+
+    function bindLobby() {
+      $("selectAllBtn").addEventListener("click", () => {
+        selectedCategories = new Set(allCategories);
+        renderCategories();
+      });
+      $("clearAllBtn").addEventListener("click", () => {
+        selectedCategories.clear();
+        renderCategories();
+      });
+      document.querySelectorAll(".pill.mode").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".pill.mode").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          lobbySettings.mode = btn.dataset.mode;
+        });
+      });
+      document.querySelectorAll(".pill.drop-mode").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".pill.drop-mode").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          lobbySettings.dropMode = btn.dataset.dropMode;
+        });
+      });
+      $("durationSelect").addEventListener("change", e => lobbySettings.duration = Number(e.target.value));
+      $("difficultySelect").addEventListener("change", e => lobbySettings.difficulty = e.target.value);
+      $("speechRateSelect").addEventListener("change", e => lobbySettings.speechRate = Number(e.target.value));
+      $("volumeRange").addEventListener("input", e => {
+        lobbySettings.volume = Number(e.target.value) / 100;
+        $("volumeValue").textContent = `${e.target.value}%`;
+        sfx.setVolume(lobbySettings.volume);
+      });
+      $("sfxToggleBtn").addEventListener("click", () => {
+        lobbySettings.sfxEnabled = !lobbySettings.sfxEnabled;
+        sfx.setEnabled(lobbySettings.sfxEnabled);
+        $("sfxToggleBtn").textContent = lobbySettings.sfxEnabled ? "On" : "Off";
+        $("sfxToggleBtn").classList.toggle("active", lobbySettings.sfxEnabled);
+        if (lobbySettings.sfxEnabled) playSfx("click");
+      });
+      document.addEventListener("pointerdown", (e) => {
+        if (e.target && e.target.closest && e.target.closest("button") && !e.target.closest(".move-btn")) playSfx("click");
+      }, true);
+      $("startGameBtn").addEventListener("click", () => startGameFromLobby());
+      $("repeatBtn").addEventListener("click", () => activeScene && activeScene.repeatPrompt());
+      $("playAgainBtn").addEventListener("click", () => {
+        clearEndNames();
+        startGame(currentGameSettings);
+      });
+      $("backLobbyBtn").addEventListener("click", () => {
+        clearEndNames();
+        showScreen("lobbyScreen");
+        document.body.classList.remove("dual-game");
+        destroyGame();
+      });
+    }
+
+    function startGameFromLobby() {
+      if (selectedCategories.size === 0) {
+        toast("Choose at least one sound");
+        return;
+      }
+      const playerCount = decidePlayerCount(lobbySettings.mode);
+      const settings = {
+        selectedCategories: Array.from(selectedCategories),
+        duration: Number($("durationSelect").value),
+        difficulty: $("difficultySelect").value,
+        speechRate: Number($("speechRateSelect").value),
+        volume: Number($("volumeRange").value) / 100,
+        sfxEnabled: lobbySettings.sfxEnabled,
+        dropMode: lobbySettings.dropMode,
+        requestedMode: lobbySettings.mode,
+        playerCount
+      };
+      startGame(settings);
+    }
+
+    function decidePlayerCount(mode) {
+      if (mode === "single") return 1;
+      if (mode === "dual") return 2;
+      return window.innerWidth >= 900 ? 2 : 1;
+    }
+
+    function startGame(settings) {
+      currentGameSettings = structuredClone(settings);
+      sfx.setEnabled(settings.sfxEnabled !== false);
+      sfx.setVolume(settings.volume ?? 0.8);
+      playSfx("start");
+      document.body.classList.toggle("dual-game", settings.playerCount === 2);
+      showScreen("gameScreen");
+      $("hudP2").classList.toggle("hidden", settings.playerCount === 1);
+      $("controlP1").classList.toggle("single", settings.playerCount === 1);
+      $("controlP2").style.display = settings.playerCount === 1 ? "none" : "grid";
+      destroyGame();
+      const config = {
+        type: Phaser.AUTO,
+        parent: "gameRoot",
+        width: window.innerWidth,
+        height: window.innerHeight,
+        transparent: true,
+        pixelArt: false,
+        scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+        physics: {
+          default: "matter",
+          matter: {
+            gravity: { y: difficultyGravity(settings.difficulty) },
+            debug: false,
+            enableSleeping: false
+          }
+        },
+        scene: PancakeScene
+      };
+      phaserGame = new Phaser.Game(config);
+    }
+
+    function destroyGame() {
+      if (phaserGame) {
+        phaserGame.destroy(true);
+        phaserGame = null;
+        activeScene = null;
+      }
+      window.speechSynthesis && window.speechSynthesis.cancel();
+    }
+
+    function difficultyGravity(level) {
+      // Slower five-step scale for elementary listening practice.
+      return ({ level1: 0.16, level2: 0.20, level3: 0.25, level4: 0.31, level5: 0.38 })[level] || 0.20;
+    }
+
+    function difficultySpawnDelay(level) {
+      return ({ level1: 2600, level2: 2300, level3: 2000, level4: 1700, level5: 1450 })[level] || 2300;
+    }
+
+    function traySpeed(level) {
+      return ({ level1: 8.2, level2: 8.8, level3: 9.5, level4: 10.2, level5: 11.0 })[level] || 8.8;
+    }
+
+    class PancakeScene extends Phaser.Scene {
+      constructor() {
+        super("PancakeScene");
+        this.players = [];
+        this.falling = [];
+        this.labels = new Map();
+        this.roundNo = 0;
+        this.roundTargetCat = null;
+        this.roundWord = null;
+        this.roundPlan = [];
+        this.roundPlanIndex = 0;
+        this.nextSharedSpawnAt = 0;
+        this.firstClaimed = false;
+        this.startMs = 0;
+        this.ended = false;
+      }
+
+      preload() {}
+
+      create() {
+        activeScene = this;
+        this.settings = currentGameSettings;
+        this.createTextures();
+        this.setupWorld();
+        this.bindControls();
+        this.startMs = Date.now();
+        this.endMs = this.startMs + this.settings.duration * 1000;
+        this.timerEvent = this.time.addEvent({ delay: 120, loop: true, callback: this.tickTimer, callbackScope: this });
+        this.matter.world.on("collisionstart", this.handleCollisionStart, this);
+        this.startRound();
+      }
+
+      createTextures() {
+        if (!this.textures.exists("pancakeTex")) {
+          const g = this.make.graphics({ x: 0, y: 0, add: false });
+          g.fillStyle(0xD8CB9F, 1);
+          g.fillRoundedRect(0, 0, 154, 62, 26);
+          g.fillStyle(0xC9B878, 0.42);
+          g.fillRoundedRect(10, 43, 134, 13, 10);
+          g.fillStyle(0xF2D65D, 1);
+          g.fillRoundedRect(64, 8, 28, 14, 4);
+          g.generateTexture("pancakeTex", 154, 62);
+          g.clear();
+          g.fillStyle(0xD3EBEA, 1);
+          g.fillRoundedRect(0, 0, 190, 26, 12);
+          g.fillStyle(0xBBD9D7, 1);
+          g.fillRoundedRect(34, 18, 122, 18, 10);
+          g.generateTexture("trayTex", 190, 38);
+          g.clear();
+          g.fillStyle(0xffffff, 1);
+          g.fillCircle(30, 30, 30);
+          g.fillStyle(0xffd6e5, 1);
+          g.fillCircle(30, 30, 25);
+          g.generateTexture("bonusTex", 60, 60);
+          g.destroy();
+        }
+      }
+
+      setupWorld() {
+        const w = this.scale.width;
+        const h = this.scale.height;
+        const top = Math.max(66, Math.min(82, h * 0.10));
+        const bottomPad = Math.max(132, Math.min(172, h * 0.22));
+        this.players = [];
+        const count = this.settings.playerCount;
+        for (let i = 0; i < count; i++) {
+          const bw = count === 1 ? w : w / 2;
+          const bx = count === 1 ? 0 : i * bw;
+          const sideMargin = count === 2 ? 6 : 16;
+          const bounds = { x: bx + sideMargin, y: top, w: bw - sideMargin * 2, h: h - top - bottomPad };
+          this.drawZone(bounds, i);
+          const trayBaseY = h - bottomPad + 14;
+          const tray = this.matter.add.image(bounds.x + bounds.w / 2, trayBaseY, "trayTex", null, {
+            isStatic: true,
+            friction: 0.86,
+            frictionStatic: 0.92,
+            restitution: 0.1,
+            label: `tray-${i}`
+          });
+          tray.setRectangle(178, 24, { chamfer: { radius: 12 } });
+          tray.setStatic(true);
+          tray.setFixedRotation();
+          tray.setIgnoreGravity(true);
+          tray.setData("type", "tray");
+          tray.setData("player", i);
+          tray.body.gameObject = tray;
+          const player = {
+            id: i,
+            bounds,
+            tray,
+            trayBaseY,
+            dir: 0,
+            score: 0,
+            hearts: 5,
+            answered: false,
+            locked: false,
+            out: false,
+            spawnCounter: 0,
+            bonusCount: 0,
+            stackItems: [],
+            balanceDangerSince: 0,
+            balanceWarningAt: 0,
+            wobbleHintAt: 0,
+            wobbleUntil: 0,
+            wobbleIntensity: 0,
+            balanceRisk: 0,
+            endReason: "",
+            nextSpawnAt: 0,
+            promptWord: "Ready",
+            waitBox: null,
+            waitText: null
+          };
+          const waitBox = this.add.rectangle(bounds.x + bounds.w / 2, bounds.y + bounds.h / 2, Math.min(330, bounds.w * 0.78), 116, 0xffffff, 0.88)
+            .setStrokeStyle(5, i === 0 ? 0xb8eee4 : 0xffd6e5, 0.95)
+            .setDepth(8)
+            .setVisible(false);
+          const waitText = this.add.text(bounds.x + bounds.w / 2, bounds.y + bounds.h / 2, "Waiting...", {
+            fontFamily: "Comic Sans MS, Arial Rounded MT Bold, sans-serif",
+            fontSize: "34px",
+            fontStyle: "900",
+            color: "#8b5e3c",
+            align: "center",
+            stroke: "#fff8dc",
+            strokeThickness: 6
+          }).setOrigin(0.5).setDepth(9).setVisible(false);
+          player.waitBox = waitBox;
+          player.waitText = waitText;
+          this.players.push(player);
+          this.add.text(bounds.x + bounds.w / 2, top + 30, i === 0 ? "Player 1" : "Player 2", {
+            fontFamily: "Comic Sans MS, Arial Rounded MT Bold, sans-serif",
+            fontSize: "28px",
+            fontStyle: "900",
+            color: "#8b5e3c",
+            backgroundColor: "rgba(255,255,255,0.55)",
+            padding: { x: 14, y: 8 }
+          }).setOrigin(0.5).setDepth(1).setName(`zoneTitle${i}`);
+
+          this.matter.add.rectangle(bounds.x - 9, top + bounds.h / 2, 18, bounds.h + 180, { isStatic: true, label: `wallL-${i}` });
+          this.matter.add.rectangle(bounds.x + bounds.w + 9, top + bounds.h / 2, 18, bounds.h + 180, { isStatic: true, label: `wallR-${i}` });
+        }
+        if (count === 2) {
+          const div = this.add.rectangle(w / 2, top + (h - top - bottomPad) / 2, 8, h - top - 70, 0xffffff, 0.68).setDepth(0.5);
+          div.setStrokeStyle(2, 0xffd6e5, 0.8);
+        }
+        this.updateHud();
+      }
+
+      drawZone(bounds, id) {
+        const tint = id === 0 ? 0xffffff : 0xfffbf0;
+        const rect = this.add.rectangle(bounds.x + bounds.w/2, bounds.y + bounds.h/2, bounds.w, bounds.h, tint, 0.34);
+        rect.setStrokeStyle(4, id === 0 ? 0xb8eee4 : 0xffd6e5, 0.78);
+        rect.setDepth(0);
+      }
+
+      bindControls() {
+        document.querySelectorAll(".move-btn").forEach(btn => {
+          const player = Number(btn.dataset.player);
+          const dir = Number(btn.dataset.dir);
+          const down = (e) => {
+            e.preventDefault();
+            if (this.players[player]) this.players[player].dir = dir;
+            btn.classList.add("held");
+          };
+          const up = (e) => {
+            e.preventDefault();
+            if (this.players[player] && this.players[player].dir === dir) this.players[player].dir = 0;
+            btn.classList.remove("held");
+          };
+          btn.onpointerdown = down;
+          btn.onpointerup = up;
+          btn.onpointercancel = up;
+          btn.onpointerleave = up;
+        });
+        this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
+        this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        this.keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+        this.keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+      }
+
+      tickTimer() {
+        if (this.ended) return;
+        const left = Math.max(0, Math.ceil((this.endMs - Date.now()) / 1000));
+        $("timerBadge").textContent = `${left}s`;
+        if (left <= 0) this.endGame();
+      }
+
+      startRound() {
+        if (this.ended) return;
+        if (this.players.every(p => p.out)) return;
+        this.roundNo += 1;
+        this.firstClaimed = false;
+        this.removeLooseItems();
+        this.roundTargetCat = Phaser.Utils.Array.GetRandom(this.settings.selectedCategories);
+        this.roundWord = Phaser.Utils.Array.GetRandom(phonicsDictionary[this.roundTargetCat]);
+        this.roundPlan = this.buildRoundPlan();
+        this.roundPlanIndex = 0;
+        this.nextSharedSpawnAt = this.time.now + 680;
+        this.players.forEach(p => {
+          if (!p.out) {
+            p.answered = false;
+            p.locked = false;
+            p.spawnCounter = 0;
+            p.promptWord = "Listen";
+            p.nextSpawnAt = this.nextSharedSpawnAt;
+            this.setWaiting(p, false);
+          }
+        });
+        this.updateHud();
+        this.repeatPrompt();
+      }
+
+      buildRoundPlan() {
+        const selectedPool = this.settings.selectedCategories && this.settings.selectedCategories.length
+          ? this.settings.selectedCategories
+          : allCategories;
+        const dropPool = this.settings.dropMode === "all" ? allCategories : selectedPool;
+        const wrongPool = dropPool.filter(c => c !== this.roundTargetCat);
+        const pickWrong = () => wrongPool.length ? Phaser.Utils.Array.GetRandom(wrongPool) : this.roundTargetCat;
+        const firstSide = Phaser.Math.Between(0, 1) === 0 ? 0.24 : 0.76;
+        const secondSide = firstSide < 0.5 ? 0.76 : 0.24;
+        // Correct pancakes now appear in a wider range, so students may need to decide
+        // whether to catch near the center or take a risk near the edge.
+        const targetA = Phaser.Utils.Array.GetRandom([0.28, 0.38, 0.50, 0.62, 0.72]);
+        const targetB = Phaser.Utils.Array.GetRandom([0.25, 0.36, 0.50, 0.64, 0.75]);
+        const plan = [
+          { type: "pancake", cat: pickWrong(), xFrac: firstSide },
+          { type: "pancake", cat: this.roundTargetCat, xFrac: targetA },
+          { type: "pancake", cat: pickWrong(), xFrac: secondSide },
+          { type: "pancake", cat: this.roundTargetCat, xFrac: targetB }
+        ];
+        if (this.roundNo > 1 && Math.random() < 0.10) {
+          plan.splice(2, 0, { type: "bonus", xFrac: 0.50 });
+        }
+        return plan;
+      }
+
+      setWaiting(player, visible, message = "Waiting...") {
+        if (!player) return;
+        if (player.waitBox) player.waitBox.setVisible(visible);
+        if (player.waitText) {
+          player.waitText.setText(message);
+          player.waitText.setFontSize(message.length > 18 || message.includes("\n") ? "27px" : "34px");
+          player.waitText.setLineSpacing(8);
+          player.waitText.setVisible(visible);
+        }
+        player.promptWord = visible ? (player.out ? "Done" : "Waiting") : (player.out ? "Done" : "Listen");
+        this.updateHud();
+      }
+
+      repeatPrompt() {
+        if (!this.roundWord || this.ended) return;
+        speakWordTwice(this.roundWord, this.settings.speechRate, this.settings.volume);
+        toast("Listen carefully", 850);
+      }
+
+      spawnPancake(player, entry) {
+        if (player.locked || player.out || player.answered || this.ended) return;
+        const b = player.bounds;
+        const xFrac = entry && typeof entry.xFrac === "number" ? entry.xFrac : 0.5;
+        const minX = b.x + 84;
+        const maxX = b.x + b.w - 84;
+        const x = Phaser.Math.Clamp(b.x + b.w * xFrac, minX, maxX);
+        const y = b.y - 62;
+        if (entry && entry.type === "bonus") {
+          player.bonusCount += 1;
+          this.spawnBonus(player, x, y);
+          return;
+        }
+
+        const cat = entry && entry.cat ? entry.cat : this.roundTargetCat;
+        player.spawnCounter += 1;
+        const pancake = this.matter.add.image(x, y, "pancakeTex", null, {
+          friction: 0.82,
+          frictionAir: 0.006,
+          restitution: 0.08,
+          density: 0.002,
+          label: "pancake"
+        });
+        pancake.setRectangle(140, 52, { chamfer: { radius: 22 } });
+        pancake.setData("type", "pancake");
+        pancake.setData("player", player.id);
+        pancake.setData("category", cat);
+        pancake.setData("resolved", false);
+        pancake.setData("touchedTray", false);
+        pancake.setAngularVelocity(Phaser.Math.FloatBetween(-0.035, 0.035));
+        pancake.body.gameObject = pancake;
+        pancake.setDepth(3);
+        const label = this.add.text(x, y - 1, cat, {
+          fontFamily: "Comic Sans MS, Arial Rounded MT Bold, sans-serif",
+          fontSize: "28px",
+          fontStyle: "900",
+          color: "#7c4d2f",
+          stroke: "#fff8dc",
+          strokeThickness: 5
+        }).setOrigin(0.5).setDepth(4);
+        this.labels.set(pancake, label);
+        this.falling.push(pancake);
+      }
+
+      spawnBonus(player, x, y) {
+        const emoji = Phaser.Utils.Array.GetRandom(["🍓", "🍩", "🍌", "🧁", "🍪"]);
+        const bonus = this.matter.add.image(x, y, "bonusTex", null, {
+          friction: 0.72,
+          restitution: 0.1,
+          density: 0.0012,
+          label: "bonus"
+        });
+        bonus.setCircle(26);
+        bonus.setData("type", "bonus");
+        bonus.setData("player", player.id);
+        bonus.setData("resolved", false);
+        bonus.body.gameObject = bonus;
+        bonus.setDepth(3);
+        const label = this.add.text(x, y, emoji, { fontSize: "31px" }).setOrigin(0.5).setDepth(4);
+        this.labels.set(bonus, label);
+        this.falling.push(bonus);
+      }
+
+      handleCollisionStart(event) {
+        for (const pair of event.pairs) {
+          const goA = pair.bodyA.gameObject;
+          const goB = pair.bodyB.gameObject;
+          if (!goA || !goB) continue;
+
+          const isTray = (go) => go.getData && go.getData("type") === "tray";
+          const isStackedPancake = (go) => go.getData && go.getData("type") === "pancake" && go.getData("stacked") && !go.getData("failed");
+          const isActiveDrop = (go) => go.getData && ["pancake", "bonus"].includes(go.getData("type")) && !go.getData("stacked") && !go.getData("resolved");
+
+          const catcher = [goA, goB].find(go => isTray(go) || isStackedPancake(go));
+          const item = [goA, goB].find(go => isActiveDrop(go));
+          if (!catcher || !item) continue;
+
+          const playerId = isTray(catcher) ? catcher.getData("player") : catcher.getData("player");
+          if (item.getData("player") !== playerId) continue;
+
+          item.setData("touchedTray", true);
+          if (item.getData("type") === "bonus") this.handleBonusCatch(playerId, item);
+          else this.handlePancakeCatch(playerId, item);
+        }
+      }
+
+      handleBonusCatch(playerId, item) {
+        item.setData("resolved", true);
+        const p = this.players[playerId];
+        if (!p || p.out) return;
+        p.score += 3;
+        playSfx("bonus");
+        this.floatText(item.x, item.y - 22, "+3 snack!", "#54b9aa");
+        this.emitStars(item.x, item.y, 0xb8eee4);
+        this.safeRemoveItem(item, 80);
+        p.nextSpawnAt = this.time.now + 850;
+        this.updateHud();
+      }
+
+      handlePancakeCatch(playerId, item) {
+        item.setData("resolved", true);
+        const p = this.players[playerId];
+        if (!p || p.out || p.answered) return;
+        const cat = item.getData("category");
+        const relX = item.x - p.tray.x;
+        if (cat !== this.roundTargetCat && Math.abs(relX) > this.safeWrongCatchDistance()) {
+          playSfx("edge");
+          this.floatSmallText(item.x, item.y - 18, "Edge miss", "#54b9aa");
+          this.safeRemoveItem(item, 100);
+          this.nextSharedSpawnAt = Math.max(this.nextSharedSpawnAt, this.time.now + 450);
+          return;
+        }
+        if (cat === this.roundTargetCat) {
+          item.setData("catchOffsetX", relX);
+          let add = 10;
+          if (!this.firstClaimed) {
+            this.firstClaimed = true;
+            add += 5;
+            this.floatText(item.x, item.y - 48, "First Bonus +5", "#f28aae");
+          }
+          p.score += add;
+          playSfx("correct");
+          p.answered = true;
+          p.locked = true;
+          this.floatText(item.x, item.y - 18, `+${add} Correct!`, "#54b9aa");
+          const shouldWait = this.settings.playerCount === 2 && this.players.some(pl => !pl.out && !pl.answered);
+          this.setWaiting(p, shouldWait, "Waiting...");
+          if (shouldWait) playSfx("waiting");
+          this.emitStars(item.x, item.y, 0xfff1a8);
+          this.keepPancakeOnTray(playerId, item);
+          this.updateHud();
+          if (this.players.filter(pl => !pl.out).every(pl => pl.answered)) {
+            this.time.delayedCall(900, () => this.startRound());
+          }
+        } else {
+          p.hearts = Math.max(0, p.hearts - 1);
+          playSfx("wrong");
+          this.floatText(item.x, item.y - 18, "Try again!", "#ff6b6b");
+          this.wigglePlayer(playerId);
+          this.safeRemoveItem(item, 120);
+          p.nextSpawnAt = this.time.now + 900;
+          if (p.hearts <= 0) {
+            p.out = true;
+            p.locked = true;
+            p.answered = true;
+            p.endReason = "Out of hearts";
+            this.setWaiting(p, true, "Out of Hearts");
+            this.floatText(p.tray.x, p.tray.y - 74, "Out of Hearts", "#ff6b6b");
+          }
+          this.updateHud();
+          if (this.players.every(pl => pl.out)) {
+            this.time.delayedCall(900, () => this.endGame());
+          } else if (this.players.filter(pl => !pl.out).every(pl => pl.answered)) {
+            this.time.delayedCall(900, () => this.startRound());
+          }
+        }
+      }
+
+      activeDropCount(player) {
+        return this.falling.filter(item => {
+          if (!item || !item.getData) return false;
+          if (item.getData("player") !== player.id) return false;
+          if (item.getData("stacked") || item.getData("resolved")) return false;
+          return ["pancake", "bonus"].includes(item.getData("type"));
+        }).length;
+      }
+
+      maybeSpawnShared(time) {
+        if (this.ended || !this.roundPlan.length || time < this.nextSharedSpawnAt) return;
+        const activePlayers = this.players.filter(p => !p.out && !p.locked && !p.answered);
+        if (!activePlayers.length) return;
+        if (activePlayers.some(p => this.activeDropCount(p) > 0)) return;
+        const entry = this.roundPlan[this.roundPlanIndex % this.roundPlan.length];
+        this.roundPlanIndex += 1;
+        activePlayers.forEach(p => this.spawnPancake(p, entry));
+        this.nextSharedSpawnAt = time + difficultySpawnDelay(this.settings.difficulty);
+      }
+
+      safeWrongCatchDistance() {
+        // Only a real edge brush is safe. Center and near-center wrong catches now cost a heart.
+        return 84;
+      }
+
+      syncStackToTray(player) {
+        if (!player || !player.stackItems) return;
+        const stackGap = 22;
+        const baseY = player.tray.y - 34;
+        const now = this.time ? this.time.now : 0;
+        const wobbleActive = now < (player.wobbleUntil || 0);
+        const wobbleIntensity = wobbleActive ? (player.wobbleIntensity || 0) : 0;
+        if (!wobbleActive) player.wobbleIntensity = 0;
+        const liveCount = player.stackItems.filter(item => item && item.body && item.getData("stacked") && !item.getData("failed")).length || 1;
+        player.stackItems.forEach((item, idx) => {
+          if (!item || !item.body || !item.getData("stacked") || item.getData("failed")) return;
+          if (item.getData("stackIndex") !== idx) item.setData("stackIndex", idx);
+          const offsetX = item.getData("stackOffsetX") || 0;
+          const baseAngle = item.getData("stackBaseAngle") || 0;
+          const layerBoost = 0.55 + (idx + 1) / liveCount;
+          const phase = now * 0.028 + idx * 1.25 + player.id * 0.9;
+          const wobbleX = wobbleIntensity > 0 ? Math.sin(phase) * wobbleIntensity * layerBoost * 5.2 : 0;
+          const wobbleAngle = wobbleIntensity > 0 ? Math.sin(phase + 0.7) * wobbleIntensity * (0.025 + idx * 0.0075) : 0;
+          item.setStatic(true);
+          item.setIgnoreGravity(true);
+          item.setVelocity(0, 0);
+          item.setAngularVelocity(0);
+          item.setPosition(player.tray.x + offsetX + wobbleX, baseY - idx * stackGap);
+          item.setRotation(baseAngle + wobbleAngle);
+        });
+      }
+
+      moveStackWithTray(player) {
+        // Caught pancakes are now a stable tray stack. They follow the tray exactly,
+        // so moving left/right does not create side wobble or accidental sliding.
+        this.syncStackToTray(player);
+      }
+
+      update(time, delta) {
+        if (this.ended) return;
+        const dt = delta / 16.67;
+        const speed = traySpeed(this.settings.difficulty) * dt;
+        this.players.forEach((p, idx) => {
+          if (idx === 0) {
+            if (this.keyA.isDown) p.dir = -1;
+            else if (this.keyD.isDown) p.dir = 1;
+            else if (document.querySelector('.move-btn.held[data-player="0"]') == null) p.dir = 0;
+          } else if (idx === 1) {
+            if (this.keyLeft.isDown) p.dir = -1;
+            else if (this.keyRight.isDown) p.dir = 1;
+            else if (document.querySelector('.move-btn.held[data-player="1"]') == null) p.dir = 0;
+          }
+          if (!p.out) {
+            const minX = p.bounds.x + 112;
+            const maxX = p.bounds.x + p.bounds.w - 112;
+            const safeCenter = p.bounds.x + p.bounds.w / 2;
+            const oldX = p.tray.x;
+            const nx = minX < maxX ? Phaser.Math.Clamp(oldX + p.dir * speed, minX, maxX) : safeCenter;
+            const dx = nx - oldX;
+            p.tray.setStatic(true);
+            p.tray.setVelocity(0, 0);
+            p.tray.setAngularVelocity(0);
+            p.tray.setPosition(nx, p.trayBaseY);
+            p.tray.setAngle(0);
+            this.moveStackWithTray(p);
+          }
+          this.checkStackFailure(p, time);
+
+        });
+
+        this.maybeSpawnShared(time);
+
+        for (let i = this.falling.length - 1; i >= 0; i--) {
+          const item = this.falling[i];
+          const label = this.labels.get(item);
+          if (label) {
+            label.setPosition(item.x, item.y);
+            label.setRotation(item.rotation * 0.12);
+          }
+          if (item.getData && item.getData("stacked") && !item.getData("failed")) {
+            const p = this.players[item.getData("player")];
+            if (p && !p.out && (item.y > this.scale.height - 30 || item.x < -80 || item.x > this.scale.width + 80)) {
+              this.endPlayerByStack(p.id, item.x, item.y);
+              continue;
+            }
+          }
+          if (item.y > this.scale.height + 80 || item.x < -160 || item.x > this.scale.width + 160) {
+            this.removeItem(item);
+          }
+        }
+      }
+
+      keepPancakeOnTray(playerId, item) {
+        const label = this.labels.get(item);
+        if (label) label.destroy();
+        this.labels.delete(item);
+        const p = this.players[playerId];
+        if (!p) return;
+        const stackIndex = p.stackItems.length;
+        const impactOffset = Phaser.Math.Clamp(item.getData("catchOffsetX") ?? (item.x - p.tray.x), -96, 96);
+        // Keep the caught pancake visually close to the real catch point.
+        // Slight edge catches are allowed, but repeated same-side catches move the center of mass.
+        const softOffset = Phaser.Math.Clamp(impactOffset * 0.84, -82, 82);
+        const unstableLevel = Math.max(0, (Math.abs(impactOffset) - 48) / 42);
+        if (unstableLevel > 0.22) this.floatSmallText(item.x, item.y - 66, "Wobble!", "#f28aae");
+        item.setData("stacked", true);
+        item.setData("stackedAt", this.time.now);
+        item.setData("failed", false);
+        item.setData("stackIndex", stackIndex);
+        item.setData("stackOffsetX", softOffset);
+        item.setData("catchOffsetX", impactOffset);
+        item.setData("unstableLevel", unstableLevel);
+        item.setData("stackBaseAngle", Phaser.Math.Clamp(softOffset * 0.0058, -0.30, 0.30));
+        item.setDepth(3 + stackIndex * 0.01);
+        item.setStatic(true);
+        item.setIgnoreGravity(true);
+        item.setFixedRotation();
+        item.setFriction(0.98, 0.02, 0.98);
+        item.setBounce(0.01);
+        item.setVelocity(0, 0);
+        item.setAngularVelocity(0);
+        if (!p.stackItems.includes(item)) p.stackItems.push(item);
+        p.balanceDangerSince = 0;
+        if (unstableLevel > 0.22) this.triggerBalanceWobble(p, this.getStackBalanceMetrics(p), this.time.now);
+        this.syncStackToTray(p);
+      }
+
+      getStackBalanceMetrics(player) {
+        const items = (player.stackItems || []).filter(item => item && item.body && item.getData("stacked") && !item.getData("failed"));
+        const count = items.length;
+        if (!count) {
+          return { count: 0, cmX: 0, risk: 0, threshold: 999, warningThreshold: 999, maxAbs: 0, side: 0 };
+        }
+        let weightSum = 0;
+        let moment = 0;
+        let absMoment = 0;
+        let maxAbs = 0;
+        let leftWeight = 0;
+        let rightWeight = 0;
+        items.forEach((item, idx) => {
+          const offset = item.getData("stackOffsetX") || 0;
+          // Higher pancakes have more leverage. This keeps 1-2 mild edge catches safe,
+          // but repeated same-side catches become unstable in a believable way.
+          const weight = 1 + idx * 0.34;
+          weightSum += weight;
+          moment += offset * weight;
+          absMoment += Math.abs(offset) * weight;
+          maxAbs = Math.max(maxAbs, Math.abs(offset));
+          if (offset < -20) leftWeight += weight;
+          if (offset > 20) rightWeight += weight;
+        });
+        const cmX = weightSum ? moment / weightSum : 0;
+        const heightFactor = 1 + Math.max(0, count - 2) * 0.32;
+        const sameSideBias = weightSum ? Math.abs(leftWeight - rightWeight) / weightSum : 0;
+        // Opposite-side catches cancel through cmX. Same-side repetition adds torque risk.
+        let risk = Math.abs(cmX) * heightFactor;
+        risk += Math.max(0, maxAbs - 48) * (count >= 3 ? 0.95 : 0.24);
+        risk += sameSideBias * Math.max(0, count - 2) * 12.5;
+        risk += Math.max(0, count - 5) * 5.5;
+        const threshold = count <= 1 ? 108 : (count === 2 ? 80 : Math.max(38, 60 - (count - 3) * 5.2));
+        const warningThreshold = threshold * 0.52;
+        const side = cmX === 0 ? 0 : Math.sign(cmX);
+        return { count, cmX, risk, threshold, warningThreshold, maxAbs, side, absMoment, sameSideBias };
+      }
+
+
+      triggerBalanceWobble(player, metrics, time) {
+        if (!player || player.out || !metrics || !metrics.count) return;
+        const ratio = metrics.threshold ? metrics.risk / metrics.threshold : 0;
+        const movingBoost = Math.abs(player.dir || 0) > 0 ? 1.35 : 0.9;
+        const intensity = Phaser.Math.Clamp((ratio - 0.32) * 2.7 * movingBoost, 0.28, 2.25);
+        player.wobbleIntensity = Math.max(player.wobbleIntensity || 0, intensity);
+        player.wobbleUntil = Math.max(player.wobbleUntil || 0, time + 560);
+        if (time - (player.wobbleHintAt || 0) > 1250) {
+          player.wobbleHintAt = time;
+          playSfx("wobble");
+          const text = Math.abs(metrics.cmX) < 14 ? "Wobble!" : "Balance!";
+          this.floatSmallText(player.tray.x + metrics.cmX, player.tray.y - 110, text, "#f28aae");
+        }
+      }
+
+      warnBalance(player, metrics, time) {
+        if (!player || player.out) return;
+        if (time - (player.balanceWarningAt || 0) < 1300) return;
+        player.balanceWarningAt = time;
+        const hint = Math.abs(metrics.cmX) < 10 ? "Wobble!" : "Move gently!";
+        this.floatSmallText(player.tray.x, player.tray.y - 115, hint, "#f28aae");
+      }
+
+      checkStackFailure(player, time) {
+        if (!player || player.out || !player.stackItems.length) return;
+        this.syncStackToTray(player);
+        const metrics = this.getStackBalanceMetrics(player);
+        player.balanceRisk = metrics.risk;
+        const youngestAge = Math.min(...player.stackItems
+          .filter(item => item && item.getData("stacked") && !item.getData("failed"))
+          .map(item => time - (item.getData("stackedAt") || 0)));
+        // Give every new pancake a short settling grace period. A single mild edge catch should not instantly fail.
+        if (!Number.isFinite(youngestAge) || youngestAge < 720) return;
+
+        const tooHigh = player.stackItems.some(item => item && item.y < player.bounds.y + 8);
+        const outsideZone = player.stackItems.some(item => item && (item.x < player.bounds.x - 46 || item.x > player.bounds.x + player.bounds.w + 46));
+        const obviousFall = player.stackItems.some(item => item && Math.abs(item.x - player.tray.x) > 150);
+        const sustainedSameSide = metrics.count >= 3 && metrics.sameSideBias > 0.62 && Math.abs(metrics.cmX) > 34;
+        const highCenterBias = metrics.count >= 5 && Math.abs(metrics.cmX) > 28;
+        const riskActive = metrics.risk > metrics.threshold || sustainedSameSide || highCenterBias || tooHigh || outsideZone || obviousFall;
+        const movingWarnThreshold = metrics.warningThreshold * (Math.abs(player.dir || 0) > 0 ? 0.72 : 1);
+        const warningActive = metrics.risk > movingWarnThreshold || (Math.abs(player.dir || 0) > 0 && metrics.count >= 2 && (Math.abs(metrics.cmX) > 18 || metrics.maxAbs > 46));
+
+        if (warningActive) this.triggerBalanceWobble(player, metrics, time);
+        if (warningActive && !riskActive) this.warnBalance(player, metrics, time);
+
+        if (riskActive) {
+          this.warnBalance(player, metrics, time);
+          if (!player.balanceDangerSince) player.balanceDangerSince = time;
+          const holdTime = metrics.count >= 5 ? 560 : (metrics.count >= 3 ? 860 : 1350);
+          if (time - player.balanceDangerSince > holdTime) {
+            this.endPlayerByStack(player.id, player.tray.x + metrics.cmX, player.tray.y - 80, metrics);
+          }
+        } else if (metrics.risk < metrics.threshold * 0.42) {
+          player.balanceDangerSince = 0;
+        }
+      }
+
+      playCollapseAnimation(player, metrics) {
+        if (!player) return;
+        const direction = metrics && metrics.side ? metrics.side : Phaser.Math.RND.pick([-1, 1]);
+        const originX = player.tray.x;
+        const originY = player.tray.y - 92;
+        player.stackItems.forEach((item, idx) => {
+          if (!item || !item.body) return;
+          item.setData("failed", true);
+          item.setStatic(false);
+          item.setIgnoreGravity(false);
+          item.setFixedRotation(false);
+          item.setFriction(0.62, 0.03, 0.7);
+          item.setBounce(0.08);
+          item.setVelocity(direction * (1.2 + idx * 0.22) + Phaser.Math.FloatBetween(-0.35, 0.35), -0.72 - idx * 0.08);
+          item.setAngularVelocity(direction * Phaser.Math.FloatBetween(0.075, 0.18));
+        });
+        this.tweens.add({
+          targets: player.tray,
+          angle: direction * 5,
+          duration: 130,
+          yoyo: true,
+          repeat: 3,
+          ease: "Sine.easeInOut",
+          onComplete: () => player.tray && player.tray.setAngle(0)
+        });
+        const burst = this.add.text(originX, originY, "🥞  💫  🥞", {
+          fontFamily: "Comic Sans MS, Arial Rounded MT Bold, sans-serif",
+          fontSize: "34px",
+          fontStyle: "900",
+          color: "#8b5e3c",
+          stroke: "#fff8dc",
+          strokeThickness: 6
+        }).setOrigin(0.5).setDepth(11);
+        this.tweens.add({ targets: burst, y: originY - 56, alpha: 0, scale: 1.25, duration: 950, ease: "Cubic.easeOut", onComplete: () => burst.destroy() });
+      }
+
+      endPlayerByStack(playerId, x, y, metrics = null) {
+        const p = this.players[playerId];
+        if (!p || p.out || this.ended) return;
+        p.out = true;
+        p.locked = true;
+        p.answered = true;
+        p.dir = 0;
+        p.endReason = "Pancakes tipped over";
+        playSfx("collapse");
+        this.playCollapseAnimation(p, metrics || this.getStackBalanceMetrics(p));
+        this.setWaiting(p, true, "Oops!\nPancakes tipped over");
+        this.floatText(x || p.tray.x, y || p.tray.y - 90, "Oops!", "#ff6b6b");
+        this.wigglePlayer(playerId);
+        this.updateHud();
+        this.time.delayedCall(1850, () => this.removePlayerItems(playerId));
+        if (this.players.every(pl => pl.out)) {
+          this.time.delayedCall(2050, () => this.endGame());
+        } else if (this.players.filter(pl => !pl.out).every(pl => pl.answered)) {
+          this.time.delayedCall(2050, () => this.startRound());
+        }
+      }
+
+      removePlayerItems(playerId) {
+        [...this.falling].forEach(item => {
+          if (item.getData && item.getData("player") === playerId) this.removeItem(item);
+        });
+      }
+
+      wigglePlayer(playerId) {
+        const hud = playerId === 0 ? $("hudP1") : $("hudP2");
+        hud.classList.remove("shake-red");
+        void hud.offsetWidth;
+        hud.classList.add("shake-red");
+        this.cameras.main.shake(170, 0.005);
+      }
+
+      emitStars(x, y, color) {
+        const particles = this.add.particles(0, 0, "bonusTex", {
+          x, y,
+          speed: { min: 80, max: 230 },
+          angle: { min: 210, max: 330 },
+          scale: { start: 0.18, end: 0 },
+          tint: color,
+          lifespan: 520,
+          quantity: 12,
+          emitting: false
+        });
+        particles.explode(18, x, y);
+        this.time.delayedCall(700, () => particles.destroy());
+      }
+
+      floatText(x, y, text, color) {
+        const t = this.add.text(x, y, text, {
+          fontFamily: "Comic Sans MS, Arial Rounded MT Bold, sans-serif",
+          fontSize: "26px",
+          fontStyle: "900",
+          color,
+          stroke: "#ffffff",
+          strokeThickness: 6
+        }).setOrigin(0.5).setDepth(10);
+        this.tweens.add({ targets: t, y: y - 52, alpha: 0, scale: 1.25, duration: 780, ease: "Cubic.easeOut", onComplete: () => t.destroy() });
+      }
+
+
+      floatSmallText(x, y, text, color) {
+        const t = this.add.text(x, y, text, {
+          fontFamily: "Comic Sans MS, Arial Rounded MT Bold, sans-serif",
+          fontSize: "18px",
+          fontStyle: "900",
+          color,
+          stroke: "#ffffff",
+          strokeThickness: 4
+        }).setOrigin(0.5).setDepth(10);
+        this.tweens.add({ targets: t, y: y - 28, alpha: 0, scale: 1.08, duration: 680, ease: "Cubic.easeOut", onComplete: () => t.destroy() });
+      }
+
+      safeRemoveItem(item, delay = 0) {
+        this.time.delayedCall(delay, () => this.removeItem(item));
+      }
+
+      removeItem(item) {
+        const label = this.labels.get(item);
+        if (label) label.destroy();
+        this.labels.delete(item);
+        const index = this.falling.indexOf(item);
+        if (index >= 0) this.falling.splice(index, 1);
+        this.players.forEach(p => {
+          if (p.stackItems) p.stackItems = p.stackItems.filter(stackItem => stackItem !== item);
+        });
+        if (item && item.body) item.destroy();
+      }
+
+      removeLooseItems() {
+        [...this.falling].forEach(item => {
+          if (!item.getData || !item.getData("stacked")) this.removeItem(item);
+        });
+      }
+
+      removeAllPancakes() {
+        [...this.falling].forEach(item => this.removeItem(item));
+      }
+
+      updateHud() {
+        this.players.forEach((p, i) => {
+          const n = i + 1;
+          $(`scoreP${n}`).textContent = p.score;
+          $(`heartsP${n}`).textContent = "❤".repeat(p.hearts) + "♡".repeat(5 - p.hearts);
+          const status = $(`statusP${n}`);
+          if (status) status.textContent = p.out ? (p.endReason || "Done") : (p.locked || p.answered ? "Waiting" : "Listen");
+        });
+      }
+
+      endGame() {
+        if (this.ended) return;
+        this.ended = true;
+        this.removeAllPancakes();
+        window.speechSynthesis && window.speechSynthesis.cancel();
+        playSfx("finish");
+        endPlayers = this.players.map((p, i) => ({ id: i, score: p.score, hearts: p.hearts, reason: p.endReason || (p.out ? "Finished" : "Time up") }));
+        this.time.delayedCall(180, () => showEndScreen());
+      }
+    }
+
+    function speakWordTwice(word, rate, volume) {
+      if (!("speechSynthesis" in window)) {
+        toast("Voice is not supported");
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const speakOnce = () => {
+        const u = new SpeechSynthesisUtterance(word);
+        u.lang = "en-US";
+        u.rate = rate;
+        u.volume = volume;
+        window.speechSynthesis.speak(u);
+      };
+      speakOnce();
+      setTimeout(speakOnce, 950);
+    }
+
+    function showEndScreen() {
+      destroyGame();
+      document.body.classList.remove("dual-game");
+      clearEndNames();
+      const modal = $("leaderboardModal");
+      if (modal) {
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+      }
+      const grid = $("resultsGrid");
+      grid.innerHTML = "";
+      endPlayers.forEach((p, idx) => {
+        const card = document.createElement("div");
+        card.className = "result-card";
+        card.innerHTML = `
+          <h3>${idx === 0 ? "🐰 Player 1" : "🐻 Player 2"}</h3>
+          <p><b>Score:</b> ${p.score}　<b>Hearts:</b> ${"❤".repeat(p.hearts)}${"♡".repeat(5-p.hearts)}</p>
+          <p style="margin-top:-6px;font-weight:900;color:#8b5e3c;">${p.reason || "Time up"}</p>
+          <div id="nameDisplay${idx}" class="name-display ${idx === 0 ? "active-input" : ""}" data-player="${idx}">Name</div>
+        `;
+        grid.appendChild(card);
+      });
+      const oldWrap = document.getElementById("keyboardWrap");
+      if (oldWrap) oldWrap.remove();
+      const keyboardWrap = document.createElement("div");
+      keyboardWrap.id = "keyboardWrap";
+      keyboardWrap.className = "keyboard-center";
+      const keyboard = document.createElement("div");
+      keyboard.id = "virtualKeyboard";
+      keyboard.className = "keyboard";
+      keyboardWrap.appendChild(keyboard);
+      grid.insertAdjacentElement("afterend", keyboardWrap);
+      renderKeyboard();
+      showScreen("endScreen");
+    }
+
+    function clearEndNames() {
+      nameBuffers = ["", ""];
+      nameSubmitted = [false, false];
+      activeNameTarget = 0;
+      isCaps = false;
+    }
+
+    function renderKeyboard() {
+      const kb = $("virtualKeyboard");
+      if (!kb) return;
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      kb.innerHTML = "";
+      letters.forEach(ch => {
+        const btn = document.createElement("button");
+        btn.className = "key-btn";
+        btn.textContent = isCaps ? ch : ch.toLowerCase();
+        btn.addEventListener("click", () => addNameChar(isCaps ? ch : ch.toLowerCase()));
+        kb.appendChild(btn);
+      });
+      const space = document.createElement("button");
+      space.className = "key-btn wide";
+      space.textContent = "Space";
+      space.addEventListener("click", () => addNameChar(" "));
+      kb.appendChild(space);
+      const caps = document.createElement("button");
+      caps.className = "key-btn wide";
+      caps.textContent = isCaps ? "abc" : "ABC";
+      caps.addEventListener("click", () => { isCaps = !isCaps; renderKeyboard(); });
+      kb.appendChild(caps);
+      const del = document.createElement("button");
+      del.className = "key-btn wide delete";
+      del.textContent = "Delete";
+      del.addEventListener("click", () => {
+        nameBuffers[activeNameTarget] = nameBuffers[activeNameTarget].slice(0, -1);
+        updateNameDisplays();
+      });
+      kb.appendChild(del);
+      const submit = document.createElement("button");
+      submit.className = "key-btn submit";
+      submit.textContent = "Submit All";
+      submit.addEventListener("click", submitAllNames);
+      kb.appendChild(submit);
+      setTimeout(bindNameDisplays, 0);
+    }
+
+    function bindNameDisplays() {
+      document.querySelectorAll(".name-display").forEach(el => {
+        el.onclick = () => {
+          activeNameTarget = Number(el.dataset.player);
+          updateNameDisplays();
+        };
+      });
+      updateNameDisplays();
+    }
+
+    function addNameChar(ch) {
+      if (nameBuffers[activeNameTarget].length >= 15) {
+        toast("Max 15 letters");
+        return;
+      }
+      nameBuffers[activeNameTarget] += ch;
+      updateNameDisplays();
+    }
+
+    function updateNameDisplays() {
+      endPlayers.forEach((p, idx) => {
+        const el = $(`nameDisplay${idx}`);
+        if (!el) return;
+        el.textContent = nameBuffers[idx] || "Name";
+        el.classList.toggle("active-input", idx === activeNameTarget);
+      });
+    }
+
+    function submitAllNames() {
+      endPlayers.forEach((p, idx) => {
+        const fallback = idx === 0 ? "Player 1" : "Player 2";
+        const name = (nameBuffers[idx] || fallback).trim().slice(0, 15) || fallback;
+        nameBuffers[idx] = name;
+        saveLeaderboard(name, p.score);
+      });
+      nameSubmitted = endPlayers.map(() => true);
+      updateNameDisplays();
+      renderLeaderboard();
+      const modal = $("leaderboardModal");
+      if (modal) {
+        modal.classList.add("show");
+        modal.setAttribute("aria-hidden", "false");
+      }
+      toast("Saved!");
+    }
+
+    function leaderboardKey() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `phonics-h-brothers-leaderboard-${yyyy}${mm}${dd}`;
+    }
+
+    function readLeaderboard() {
+      try { return JSON.parse(localStorage.getItem(leaderboardKey()) || "[]"); }
+      catch { return []; }
+    }
+
+    function saveLeaderboard(name, score) {
+      const list = readLeaderboard();
+      const existing = list.find(r => r.name.toLowerCase() === name.toLowerCase());
+      if (existing) existing.score = Math.max(existing.score, score);
+      else list.push({ name, score });
+      list.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+      localStorage.setItem(leaderboardKey(), JSON.stringify(list));
+    }
+
+    function renderLeaderboard() {
+      const list = readLeaderboard();
+      const box = $("leaderboardList");
+      if (!box) return;
+      if (!list.length) {
+        box.innerHTML = `<div class="rank-row"><span>—</span><span>No records yet</span><span class="score">0</span></div>`;
+        return;
+      }
+      box.innerHTML = list.map((r, i) => `
+        <div class="rank-row">
+          <span>${i + 1}</span>
+          <span>${escapeHtml(r.name)}</span>
+          <span class="score">${r.score}</span>
+        </div>
+      `).join("");
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>'"]/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", '"':"&quot;" }[ch]));
+    }
+
+    renderCategories();
+    bindLobby();
+  </script>
+</body>
+</html>
